@@ -7,6 +7,9 @@ project adheres to [Semantic Versioning][SemVer].
 ### Added
 - Allow for overriding the `build.config` settings using environment variables
   (of the same name, but upper-case).
+- Docker: Offer a container `VARIANT` which includes the `acme.sh` cert creation
+  script. The variant has a tag suffix `-acmesh` and can be configured with
+  environment variables.
 - Docker: Container images can now be pulled from Dockerhub as well. The name
   is `docker.io/eturnal/eturnal:latest`. When pulling with `Docker`, `docker.io`
   may be omitted.

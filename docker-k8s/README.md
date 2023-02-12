@@ -14,6 +14,7 @@ version of a particular release in case of any bug fix etc. of the image.
 | ------------ | ------------ | ------------ |
 | `edge`  | Built from `master` branch, see [changelog](https://github.com/processone/eturnal/blob/master/CHANGELOG.md)  | For testing purposes. |
 | `1.10.1`, `latest`  | [Release changelog](https://github.com/processone/eturnal/releases/tag/1.10.1)  |   |
+| `1.10.1-acmesh`, `latest-acmesh`  | As the standalone image, but including the [acme.sh](https://github.com/acmesh-official/acme.sh) | [Variant specific documentation](https://github.com/sando38/eturnal/blob/acmesh/docker-k8s/ACMESH.md)  |
 
 Images are scanned daily by [Trivy](https://www.aquasec.com/products/trivy) and,
 if necessary, the `latest` release will be rebuilt and updated.

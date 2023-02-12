@@ -239,11 +239,13 @@ jobs:
 ################################################################################
   #' build actual images for x64/arm64 with built binary tarballs
   build-ctr-binary-based:
-    name: ${{ matrix.arch }} - build & publish container image (binary-based)
+    name: ${{ matrix.arch }} - build ${{ matrix.variant }} ${{ matrix.method }}-based variant
     runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [x64, arm64]
+        method: [package]
+        variant: [standalone, acmesh]
       fail-fast: false
     needs: [detect-change, build-musl-binary-archives]
     steps:
@@ -295,25 +297,26 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           build-args: |
-            METHOD=package
+            METHOD=${{ matrix.method }}
             VERSION=${{ env.TAG_VERSION }}
             REPOSITORY=https://github.com/${{ github.repository }}.git
+            VARIANT=${{ matrix.variant }}
           context: .
           file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
           platforms: linux/${{ env.ARCH }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
       -
-        name: Export digest | ${{ matrix.arch }}
+        name: Export digest | ${{ matrix.arch }}-${{ matrix.variant }}
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
       -
-        name: Upload digest | ${{ matrix.arch }}
+        name: Upload digest | ${{ matrix.arch }}-${{ matrix.variant }}
         uses: actions/upload-artifact@v3
         with:
-          name: digests
+          name: digests-${{ matrix.variant }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -321,11 +324,13 @@ jobs:
 ################################################################################
   #' build container images with local source files
   build-ctr:
-    name: ${{ matrix.arch }} - build & publish container image (non-binary-based)
+    name: ${{ matrix.arch }} - build ${{ matrix.variant }} ${{ matrix.method }}-based variant
     runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [386, arm/v7, ppc64le, s390x]
+        method: [build]
+        variant: [standalone, acmesh]
       fail-fast: false
     needs: [detect-change]
     steps:
@@ -401,22 +406,23 @@ jobs:
             OTP_VSN=${{ env.OTP_VSN }}
             REPOSITORY=https://github.com/${{ github.repository }}.git
             REBAR_CT=${{ env.REBAR_CT }}
+            VARIANT=${{ matrix.variant }}
           context: .
           file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
           platforms: linux/${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
       -
-        name: Export digest | ${{ matrix.arch }}
+        name: Export digest | ${{ matrix.arch }}-${{ matrix.variant }}
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
       -
-        name: Upload digest | ${{ matrix.arch }}
+        name: Upload digest | ${{ matrix.arch }}-${{ matrix.variant }}
         uses: actions/upload-artifact@v3
         with:
-          name: digests
+          name: digests-${{ matrix.variant }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -424,11 +430,12 @@ jobs:
 ################################################################################
   ## merge single images to only advertise one image plus tag
   publish:
-    name: ${{ matrix.registry }} - publish image manifest
+    name: ${{ matrix.registry }} - publish manifest ${{ matrix.variant }} variant
     runs-on: ubuntu-latest
     strategy:
       matrix:
         registry: [ghcr.io, docker.io]
+        variant: [standalone, acmesh]
       fail-fast: false
     if: github.event_name != 'pull_request' && github.event_name != 'schedule'
     needs: [detect-change, build-musl-binary-archives, build-ctr-binary-based, build-ctr]
@@ -467,14 +474,18 @@ jobs:
                          && secrets.DOCKERHUB_TOKEN)
                      || secrets.GITHUB_TOKEN }}
       -
-        name: Download digests
+        name: Download digests | ${{ matrix.variant }}
         uses: actions/download-artifact@v3
         with:
-          name: digests
+          name: digests-${{ matrix.variant }}
           path: /tmp/digests
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+      -
+        name: For variant == 'acmesh' add a special tag suffix
+        if: matrix.variant == 'acmesh'
+        run: echo "TAG_ACMESH=-acmesh" >> $GITHUB_ENV
       -
         name: On push master | Docker meta
         id: meta
@@ -485,7 +496,7 @@ jobs:
                                         && env.DOCKERHUB_REPO)
                                         || env.IMAGE_NAME }}
           tags: |
-            edge
+            edge${{ env.TAG_ACMESH }}
       -
         name: On release | Docker meta
         id: meta-rel
@@ -496,11 +507,11 @@ jobs:
                                         && env.DOCKERHUB_REPO)
                                         || env.IMAGE_NAME }}
           tags: |
-            latest
-            ${{ env.TAG_PKGREL }}
-            ${{ env.TAG_VERSION }}
-            ${{ env.TAG_MINOR }}
-            ${{ env.TAG_MAJOR }}
+            latest${{ env.TAG_ACMESH }}
+            ${{ env.TAG_PKGREL }}${{ env.TAG_ACMESH }}
+            ${{ env.TAG_VERSION }}${{ env.TAG_ACMESH }}
+            ${{ env.TAG_MINOR }}${{ env.TAG_ACMESH }}
+            ${{ env.TAG_MAJOR }}${{ env.TAG_ACMESH }}
       -
         name: Create manifest list and push
         if: |

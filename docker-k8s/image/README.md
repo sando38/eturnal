@@ -126,3 +126,15 @@ Building e.g. with `Podman rootless` requires to have the correct permissions of
 the eturnal repository:
 
     podman unshare chown -R $(id -u $(whoami)) $PWD
+
+## Build the variant with `acme.sh` included
+
+From the root of the repository, do:
+
+```shell
+DOCKER_BUILDKIT=1 docker build \
+    -f docker-k8s/image/Dockerfile
+    -t localhost/myname/eturnal:acmesh \
+    --build-arg VARIANT=acmesh \
+    .
+```

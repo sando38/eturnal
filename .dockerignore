@@ -9,6 +9,7 @@
 /*.cache
 /doc
 /hello-eturnal.png
+/docker-k8s/image/Dockerfile
 
 #
 # ExDoc:
