@@ -30,7 +30,7 @@ class Eturnal < Formula
         s.gsub! "$ETURNAL_ETC_PREFIX/etc/#{name}.yml", "#{etc}/#{name}.yml"
       end
       ## fix eturnalctl
-      inreplace "scripts/eturnalctl" do |s|
+      inreplace "overlay/eturnalctl" do |s|
         s.gsub! "(readlink ", "(readlink -f "
       end
     end
