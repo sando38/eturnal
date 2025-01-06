@@ -246,18 +246,6 @@ RUN apk del --repositories-file /dev/null \
     && find /lib/apk/db -type f -not -name 'installed' -delete
 
 ################################################################################
-#' Build together musl-libc CI image
-# source: https://github.com/sando38/musl-ctr/blob/main/Dockerfile
-FROM docker.io/sando38/musl-ctr:${CI_MUSL_VSN} AS musl-ci
-COPY --from=eturnal /rootfs /
-
-ARG USER
-ARG UID
-ARG HOME
-RUN echo "$USER:x:$UID:$UID:$USER,,,:/$HOME:/sbin/nologin" >> /etc/passwd \
-    && echo "$USER:x:$UID:$USER" >> /etc/group
-
-################################################################################
 #' Build together production image
 FROM scratch AS release
 ARG REPOSITORY
